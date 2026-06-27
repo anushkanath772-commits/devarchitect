@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { runScraper } from "@/lib/scraper";
 import { prisma } from "@/lib/db";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
