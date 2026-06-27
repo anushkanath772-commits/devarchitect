@@ -11,19 +11,34 @@ export function ScrapeButton() {
     setResult(null);
 
     try {
-      const res = await fetch("/api/scrape", { method: "POST" });
-      const data = await res.json();
+      let totalNew = 0;
+      let batch = 0;
+      let hasMore = true;
 
-      if (data.success) {
-        const totalNew = data.results.reduce(
+      while (hasMore) {
+        setResult(`Scraping batch ${batch + 1}...`);
+        const res = await fetch("/api/scrape", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ batch }),
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          setResult(`Error: ${data.error}`);
+          return;
+        }
+
+        totalNew += data.results.reduce(
           (sum: number, r: { newArticles: number }) => sum + r.newArticles,
           0
         );
-        setResult(`${totalNew} articles updated`);
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
-        setResult(`Error: ${data.error}`);
+        hasMore = data.hasMore;
+        batch++;
       }
+
+      setResult(`${totalNew} articles updated`);
+      setTimeout(() => window.location.reload(), 1500);
     } catch {
       setResult("Failed to connect");
     } finally {

@@ -7,26 +7,38 @@ export const maxDuration = 60;
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { sourceId } = body as { sourceId?: string };
+    const { sourceId, batch } = body as { sourceId?: string; batch?: number };
 
     const sources = await prisma.source.findMany({
-      where: { active: true },
+      where: sourceId ? { id: sourceId } : { active: true },
+      orderBy: { name: "asc" },
     });
 
     if (sources.length === 0) {
-      await prisma.source.create({
-        data: {
-          name: "Engineering at Meta",
-          url: "https://engineering.fb.com/",
-        },
-      });
+      return NextResponse.json({ success: true, results: [], message: "No sources found" });
     }
 
-    const results = await runScraper(sourceId);
+    // If batch is specified, only scrape that batch (2 sources per batch)
+    const batchSize = 2;
+    const batchIndex = batch ?? 0;
+    const sourcesToScrape = sourceId
+      ? sources
+      : sources.slice(batchIndex * batchSize, (batchIndex + 1) * batchSize);
+
+    const totalBatches = Math.ceil(sources.length / batchSize);
+
+    const results = [];
+    for (const source of sourcesToScrape) {
+      const result = await runScraper(source.id);
+      results.push(...result);
+    }
 
     return NextResponse.json({
       success: true,
       results,
+      batch: batchIndex,
+      totalBatches,
+      hasMore: batchIndex < totalBatches - 1,
       scrapedAt: new Date().toISOString(),
     });
   } catch (error) {
@@ -44,6 +56,6 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     message: "Use POST to trigger scraping",
-    usage: "POST /api/scrape with optional { sourceId: string }",
+    usage: 'POST /api/scrape with optional { sourceId: string } or { batch: number }',
   });
 }
