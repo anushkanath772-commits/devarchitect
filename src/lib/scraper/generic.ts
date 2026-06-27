@@ -19,7 +19,7 @@ interface SiteConfig {
 
 const SITE_CONFIGS: Record<string, SiteConfig> = {
   "eng.uber.com": {
-    url: "https://www.uber.com/en-US/blog/engineering/",
+    url: "https://www.uber.com/in/en/blog/engineering/",
     name: "Uber Engineering",
     articleSelectors: ["[class*='post'], [class*='article'], article, [class*='card']"],
     titleSelectors: ["h2 a", "h3 a", "h2", "h3", "h4"],
