@@ -39,7 +39,6 @@ const SOURCE_LOGOS: Record<string, string> = {
   "Anthropic Engineering": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Anthropic_logo.svg/512px-Anthropic_logo.svg.png",
   "OpenAI Developers": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/OpenAI_Logo.svg/512px-OpenAI_Logo.svg.png",
   "Netflix Tech Blog": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Netflix_2015_N_logo.svg/400px-Netflix_2015_N_logo.svg.png",
-  "Microsoft Dev Blogs": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/512px-Microsoft_logo.svg.png",
 };
 
 export function getSourceLogo(sourceName: string): string {
@@ -55,7 +54,6 @@ const SOURCE_COLORS: Record<string, string> = {
   "Anthropic Engineering": "#D4A574",
   "OpenAI Developers": "#10A37F",
   "Netflix Tech Blog": "#E50914",
-  "Microsoft Dev Blogs": "#0078D4",
 };
 
 export function getSourceColor(sourceName: string): string {

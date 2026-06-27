@@ -103,18 +103,6 @@ const SITE_CONFIGS: Record<string, SiteConfig> = {
     topicSelectors: ["[class*='tag']"],
     baseUrl: "https://netflixtechblog.com",
   },
-  "devblogs.microsoft.com": {
-    url: "https://devblogs.microsoft.com/",
-    name: "Microsoft Dev Blogs",
-    articleSelectors: ["article, [class*='post'], [class*='entry']"],
-    titleSelectors: ["h2", "h3", "a[class*='title']"],
-    linkSelectors: ["a"],
-    dateSelectors: ["time", "[class*='date']"],
-    summarySelectors: ["p", "[class*='excerpt']"],
-    authorSelectors: ["[class*='author']"],
-    topicSelectors: ["[class*='category']", "[class*='tag']"],
-    baseUrl: "https://devblogs.microsoft.com",
-  },
 };
 
 function extractDateFromUrl(url: string): Date | undefined {
