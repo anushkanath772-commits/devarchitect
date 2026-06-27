@@ -19,13 +19,24 @@ export async function runScraper(sourceId?: string) {
     try {
       let scraped: ScrapedArticle[] = [];
 
-      if (source.url.includes("engineering.fb.com")) {
-        scraped = await scrapeMetaEngineering();
-      } else if (source.url.includes("netflixtechblog.com")) {
-        scraped = await scrapeRssFeed("https://netflixtechblog.com/feed");
-      } else if (getSiteConfig(source.url)) {
-        scraped = await scrapeGeneric(source.url);
-      }
+      const scrapeWithTimeout = async (): Promise<ScrapedArticle[]> => {
+        if (source.url.includes("engineering.fb.com")) {
+          return await scrapeMetaEngineering();
+        } else if (source.url.includes("netflixtechblog.com")) {
+          return await scrapeRssFeed("https://netflixtechblog.com/feed");
+        } else if (source.url.includes("developers.openai.com") || source.url.includes("openai.com/blog")) {
+          return await scrapeRssFeed("https://openai.com/blog/rss.xml");
+        } else if (getSiteConfig(source.url)) {
+          return await scrapeGeneric(source.url);
+        }
+        return [];
+      };
+
+      const timeout = new Promise<ScrapedArticle[]>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout after 12s")), 12000)
+      );
+
+      scraped = await Promise.race([scrapeWithTimeout(), timeout]);
 
       for (const article of scraped) {
         try {

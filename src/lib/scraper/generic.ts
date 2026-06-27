@@ -14,21 +14,23 @@ interface SiteConfig {
   topicSelectors: string[];
   urlDatePattern?: RegExp;
   baseUrl?: string;
+  excludeUrls?: string[];
 }
 
 const SITE_CONFIGS: Record<string, SiteConfig> = {
   "eng.uber.com": {
-    url: "https://eng.uber.com/",
+    url: "https://www.uber.com/en-US/blog/engineering/",
     name: "Uber Engineering",
     articleSelectors: ["[class*='post'], [class*='article'], article, [class*='card']"],
     titleSelectors: ["h2 a", "h3 a", "h2", "h3", "h4"],
-    linkSelectors: ["a[href*='/blog/']", "a[href*='/20']"],
+    linkSelectors: ["a[href*='/blog/']"],
     dateSelectors: ["time", "[class*='date']", "[class*='meta']"],
     summarySelectors: ["p", "[class*='excerpt']", "[class*='description']"],
     authorSelectors: ["[class*='author']"],
     topicSelectors: ["[class*='category'] a", "[class*='tag'] a", "[rel='tag']"],
     urlDatePattern: /\/(\d{4})\/(\d{2})\/(\d{2})\//,
     baseUrl: "https://www.uber.com",
+    excludeUrls: ["/blog/engineering/", "/blog/advertising/", "/blog/earn/", "/blog/ride/", "/blog/eat/", "/blog/merchants/", "/blog/business/", "/blog/health/", "/blog/higher-education/", "/blog/transit/", "/blog/community-support/", "/blog/freight/", "/blog/newsroom/"],
   },
   "canvatechblog.com": {
     url: "https://www.canva.dev/blog/engineering/",
@@ -252,10 +254,13 @@ export async function scrapeGeneric(sourceUrl: string): Promise<ScrapedArticle[]
           ? url
           : `${config.baseUrl || ""}${url.startsWith("/") ? "" : "/"}${url}`;
 
-        const cleanUrl = fullUrl.split("?")[0].split("#")[0];
+        // Remove query params, hash, and normalize locale prefixes
+        let cleanUrl = fullUrl.split("?")[0].split("#")[0];
+        cleanUrl = cleanUrl.replace(/\/[a-z]{2}[-\/][a-z]{2}\/blog\//, "/blog/");
 
         if (seenUrls.has(cleanUrl)) return;
         if (cleanUrl.includes("/category/") || cleanUrl.includes("/tag/") || cleanUrl.includes("/page/")) return;
+        if (config.excludeUrls?.some((ex) => cleanUrl.endsWith(ex) || cleanUrl.includes(ex + "?"))) return;
 
         seenUrls.add(cleanUrl);
 
