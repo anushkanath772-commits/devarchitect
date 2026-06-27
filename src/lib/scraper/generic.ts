@@ -21,38 +21,38 @@ const SITE_CONFIGS: Record<string, SiteConfig> = {
     url: "https://eng.uber.com/",
     name: "Uber Engineering",
     articleSelectors: ["[class*='post'], [class*='article'], article, [class*='card']"],
-    titleSelectors: ["h2", "h3", "h4", "a[class*='title']"],
-    linkSelectors: ["a[href*='/20'], a[href*='blog']"],
+    titleSelectors: ["h2 a", "h3 a", "h2", "h3", "h4"],
+    linkSelectors: ["a[href*='/blog/']", "a[href*='/20']"],
     dateSelectors: ["time", "[class*='date']", "[class*='meta']"],
     summarySelectors: ["p", "[class*='excerpt']", "[class*='description']"],
     authorSelectors: ["[class*='author']"],
     topicSelectors: ["[class*='category'] a", "[class*='tag'] a", "[rel='tag']"],
     urlDatePattern: /\/(\d{4})\/(\d{2})\/(\d{2})\//,
-    baseUrl: "https://eng.uber.com",
+    baseUrl: "https://www.uber.com",
   },
   "canvatechblog.com": {
-    url: "https://canvatechblog.com/",
+    url: "https://www.canva.dev/blog/engineering/",
     name: "Canva Engineering",
     articleSelectors: ["article, [class*='post'], [class*='card'], [class*='article']"],
-    titleSelectors: ["h2", "h3", "h4", "a"],
-    linkSelectors: ["a"],
+    titleSelectors: ["h2 a", "h3 a", "h2", "h3"],
+    linkSelectors: ["a[href*='/blog/engineering/']"],
     dateSelectors: ["time", "[class*='date']"],
-    summarySelectors: ["p", "[class*='excerpt']", "[class*='subtitle']"],
+    summarySelectors: ["[class*='excerpt']", "[class*='subtitle']", "p"],
     authorSelectors: ["[class*='author']", "[class*='byline']"],
     topicSelectors: ["[class*='category']", "[class*='tag']"],
-    baseUrl: "https://canvatechblog.com",
+    baseUrl: "https://www.canva.dev",
   },
   "ai.googleblog.com": {
-    url: "https://ai.googleblog.com/",
+    url: "https://research.google/blog/",
     name: "Google Research",
     articleSelectors: ["article, [class*='post'], [class*='card'], li"],
     titleSelectors: ["h2", "h3", "a"],
-    linkSelectors: ["a"],
+    linkSelectors: ["a[href*='/blog/']"],
     dateSelectors: ["time", "[class*='date']", "[class*='published']"],
     summarySelectors: ["p", "[class*='snippet']"],
     authorSelectors: ["[class*='author']"],
     topicSelectors: ["[class*='label']", "[class*='category']", "[class*='tag']"],
-    baseUrl: "https://ai.googleblog.com",
+    baseUrl: "https://research.google",
   },
   "engineering.atspotify.com": {
     url: "https://engineering.atspotify.com/",
@@ -172,14 +172,32 @@ export function getSiteConfig(url: string): SiteConfig | undefined {
   for (const [key, config] of Object.entries(SITE_CONFIGS)) {
     if (url.includes(key)) return config;
   }
+  if (url.includes("canva.dev") || url.includes("canvatechblog")) {
+    return SITE_CONFIGS["canvatechblog.com"];
+  }
+  if (url.includes("research.google") || url.includes("googleblog")) {
+    return SITE_CONFIGS["ai.googleblog.com"];
+  }
   return undefined;
 }
 
 function cleanTitle(raw: string): string {
   return raw
     .replace(/^\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\s*/i, "")
+    .replace(/\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\s*$/i, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function extractDateFromTitle(raw: string): Date | undefined {
+  const dateMatch = raw.match(
+    /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}/i
+  );
+  if (dateMatch) {
+    const d = new Date(dateMatch[0]);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return undefined;
 }
 
 export async function scrapeGeneric(sourceUrl: string): Promise<ScrapedArticle[]> {
@@ -219,6 +237,7 @@ export async function scrapeGeneric(sourceUrl: string): Promise<ScrapedArticle[]
         }
 
         if (!title || title.length < 10) return;
+        const titleDate = extractDateFromTitle(title);
         title = cleanTitle(title);
         if (!title || title.length < 10) return;
 
@@ -233,10 +252,12 @@ export async function scrapeGeneric(sourceUrl: string): Promise<ScrapedArticle[]
           ? url
           : `${config.baseUrl || ""}${url.startsWith("/") ? "" : "/"}${url}`;
 
-        if (seenUrls.has(fullUrl)) return;
-        if (fullUrl.includes("/category/") || fullUrl.includes("/tag/") || fullUrl.includes("/page/")) return;
+        const cleanUrl = fullUrl.split("?")[0].split("#")[0];
 
-        seenUrls.add(fullUrl);
+        if (seenUrls.has(cleanUrl)) return;
+        if (cleanUrl.includes("/category/") || cleanUrl.includes("/tag/") || cleanUrl.includes("/page/")) return;
+
+        seenUrls.add(cleanUrl);
 
         const summary = (() => {
           for (const ss of config.summarySelectors) {
@@ -269,7 +290,8 @@ export async function scrapeGeneric(sourceUrl: string): Promise<ScrapedArticle[]
           const nearbyText = $el.text();
           const textDate = parseTextDate(nearbyText);
           if (textDate) return textDate;
-          return extractDateFromUrl(fullUrl);
+          if (titleDate) return titleDate;
+          return extractDateFromUrl(cleanUrl);
         })();
 
         const topics: string[] = [];
@@ -282,7 +304,7 @@ export async function scrapeGeneric(sourceUrl: string): Promise<ScrapedArticle[]
 
         articles.push({
           title: title.slice(0, 300),
-          url: fullUrl,
+          url: cleanUrl,
           summary: summary?.slice(0, 500),
           author,
           publishedAt,
